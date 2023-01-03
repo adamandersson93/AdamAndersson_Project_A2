@@ -14,31 +14,68 @@ namespace Assignment_A2_04.Services
             NewsService service = new NewsService();
             service.NewsReportAvailable += NewsReportDataAvailable;
 
-            Task<News>[] tasks = { null };
+            List<Task<News>> Listtasks = new List<Task<News>>();
+            Task<News>[] tasks = { null, null };
+            Exception exception= null;
 
-            tasks[0] = service.GetNewsAsync(NewsCategory.sports);
-
-            Task.WaitAll(tasks[0]);
-
-            News news = await new NewsService().GetNewsAsync(NewsCategory.sports);
-
-
-            Console.WriteLine("Headlines: ");
-            var groupedNewsList = news.Articles.GroupBy(n => (n.DateTime.DayOfWeek, n.DateTime.ToShortDateString()), n => n).Distinct().ToList();
-
-            foreach (var News in groupedNewsList)
+            try
             {
-                News.ToList().ForEach(n => Console.WriteLine($"{n.DateTime}: - {n.Title} - {n.UrlToImage}"));
+                for (NewsCategory nc = NewsCategory.business; nc <= NewsCategory.technology; nc++)
+                {
+                    var task1 = service.GetNewsAsync(nc);
+                    task1.Wait();
+                    Listtasks.Add(task1);
 
+                }
+
+
+                Console.WriteLine();
+                for (NewsCategory nc = NewsCategory.business; nc <= NewsCategory.technology; nc++)
+                {
+
+                    var task2 = service.GetNewsAsync(nc);
+                    task2.Wait();
+                    Listtasks.Add(task2);
+
+                }
+
+                //Task.WaitAll(Listtasks[0], Listtasks[1]);
+                Console.WriteLine();
+
+                for (NewsCategory nc = NewsCategory.business; nc <= NewsCategory.technology; nc++)
+                {
+                   // Listtasks[0] = service.GetNewsAsync(nc);
+                   // Listtasks[1] = service.GetNewsAsync(nc);
+
+                    News news = await new NewsService().GetNewsAsync(nc);
+
+                    Console.WriteLine($" \n News in category {nc}: \n ");
+
+                    var groupedNewsList = news.Articles.GroupBy(n => (n.DateTime.DayOfWeek, n.DateTime.ToShortDateString()), n => n).Distinct().ToList();
+
+                    foreach (var News in groupedNewsList)
+
+                    {
+                        News.ToList().ForEach(n => Console.WriteLine($"{n.DateTime}: - {n.Title} - {n.UrlToImage}"));
+
+                    }
+
+                    NewsService.Serialize(groupedNewsList, "NewsList");
+
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("----------------------------------------------------------------------");
             }
-            Console.WriteLine();
-            Console.WriteLine("----------------------------------------------------------------------");
-
-
-            void NewsReportDataAvailable(object sender, string message)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Event message from news service: {message}");
+                Console.WriteLine(ex.Message);
             }
+        }
+
+        static void NewsReportDataAvailable(object sender, string message)
+        {
+            Console.WriteLine($"Event message from news service: {message}");
         }
     }
 }
